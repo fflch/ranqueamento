@@ -5,8 +5,8 @@
 <table class="table table-bordered">
   <thead>
     <tr>
-      <th scope="col">Número USP</th>
       <th scope="col">Nome</th>
+      <th scope="col">Número USP</th>
       <th scope="col">Declinou do português?</th>
       @for($prioridade = 1; $prioridade <=7; $prioridade++)
         <th>
@@ -16,7 +16,9 @@
     </tr>
   </thead>
   <tbody>
-
+  @can("admin")
+    <a class="btn btn-success" href="/excel" style="margin-bottom:5px;">Exportar Para Excel</a>
+  @endcan
     @foreach($grouped as $group)
         @php 
             $nome = '-';
@@ -32,7 +34,7 @@
         
         @endphp
         <tr>
-        <td>{{ $nome }}</td>
+        <td><a href="notas/{{$codpes}}">{{ $nome }}</a></td>
         <td>{{ $codpes }}</td>
         <td>{{ $declinou }}</td>
         @for($prioridade = 1; $prioridade <=7; $prioridade++)

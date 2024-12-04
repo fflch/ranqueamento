@@ -8,22 +8,54 @@ use App\Models\Declinio;
 use App\Models\Ranqueamento;
 use App\Models\Hab;
 use App\Models\Escolha;
+use App\Models\User;
 use App\Rules\EscolhaRule;
 use App\Service\Utils;
+use Maatwebsite\Excel\Excel;
+use App\Exports\ExcelExport;
 
 class EscolhaController extends Controller
 {
     public function index(Ranqueamento $ranqueamento){
         Gate::authorize('admin');
-
         $grouped = Escolha::where('ranqueamento_id',$ranqueamento->id)
                             ->get()
                             ->groupBy('user_id');
-
         return view('escolhas.index',[
             'grouped' => $grouped,
             'ranqueamento' => $ranqueamento
         ]); 
+    }
+
+    public function excel(Excel $excel, Ranqueamento $ranqueamento){
+        $headings = [
+            'Número USP','Nome','Declinou do Português?','Opção 1','Opção 2','Opção 3','Opção 4','Opção 5','Opção 6','Opção 7'
+        ];
+
+        $grouped = Escolha::join('habs','escolhas.hab_id','habs.id')
+        ->join('users','escolhas.user_id','users.id')
+        ->where('escolhas.ranqueamento_id',Ranqueamento::first()->id)
+        ->get()
+        ->groupBy('user_id');
+
+        $data = []; // Inicializando array para exportação
+
+        foreach ($grouped as $userId => $choices) {
+            $user = User::find($userId);
+            $codpes = $user->codpes ?? '-';
+            $nome = $user->name ?? '-';
+            $declinou = Utils::declinou($userId, $ranqueamento->id) ? 'Sim' : 'Não';
+
+            $opcoes = []; // Guardar as opções do usuário
+            for ($prioridade = 1; $prioridade <= 7; $prioridade++) {
+                $choice = $choices->where('prioridade', $prioridade)->first();
+                $opcoes[] = $choice ? Hab::find($choice->hab_id)->nomhab ?? '-' : '-';
+            }
+            // Adicionar linha para exportação
+            $data[] = array_merge([$codpes, $nome, $declinou], $opcoes);
+        }
+        $export = new ExcelExport($data, $headings);
+        return $excel->download($export, 'lista_de_nomes.xlsx');
     }
 
     public function form(){

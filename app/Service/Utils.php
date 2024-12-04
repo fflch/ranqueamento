@@ -153,4 +153,53 @@ class Utils
         $hab = Hab::find($hab_id->hab_id);
         return $hab->nomhab . ' - ' . $hab->perhab;
     }
+
+    public static function query($codpes, $coddis){
+        $query = "SELECT t4.nomdisexr, t3.notdisexr, t5.nomrazsoc, t2.codrqm
+        FROM REQUERHISTESC t1
+        INNER JOIN APROVEITEXTGR t2 ON t1.codrqm = t2.codrqm
+        INNER JOIN HISTESCOLAREXTGR t3 ON
+        (t2.coduspdisexr = t3.coduspdisexr AND t1.codpes = t3.codpes)
+        INNER JOIN DISCIPEXTGR t4 ON t3.coduspdisexr= t4.coduspdisexr
+        INNER JOIN ORGANIZACAO t5 ON t4.codorg = t5.codorg
+        WHERE t1.codpes=$codpes
+        AND t1.codpgm=t1.codpgm AND t1.coddis='$coddis'
+        ";
+        $q = DB::fetchAll($query);
+        return $q;
+    }
+
+    public static function get_nota($codpes, $coddis){
+        $query = "SELECT notfim, notfim2, coddis, rstfim, codpes
+        FROM HISTESCOLARGR
+        WHERE codpes = $codpes AND coddis = '$coddis'
+        ";
+        $resultado = DB::fetch($query);
+        
+        if($resultado != false){
+            //nota do HISTESCOLARGR deve ser igual à nota da transf.externa            
+            if($resultado['notfim'] && !$resultado['notfim2']){ //nota única da matéria no semestre
+                return [$resultado['notfim'], $resultado['coddis']];
+            }elseif($resultado['notfim2']){ //nota da prova de recuperação
+                return [$resultado['notfim2'], $resultado['coddis']];
+            }elseif($resultado['rstfim'] == 'D'){
+                $codrqm = self::query($codpes, $coddis);
+                if(count($codrqm) > 1){ //duas ou mais disciplinas externas para aproveitar uma na usp
+                    $total = array_sum(array_map(fn($nota) => (float) $nota['notdisexr'], $codrqm));
+                    $count = count($codrqm);
+                    $media = $count > 0 ? $total / $count : 0; //média das disciplinas externas
+                return [
+                    $resultado['notfim2'] = $media, //média da nota das disciplinas que valerá por uma disc. USP
+                    $resultado['coddis'],
+                    ];
+                }
+                return [
+                    $resultado['notfim'] = array_merge(...$codrqm)['notdisexr'],
+                    $resultado['coddis'] . ' - ' . array_merge(...$codrqm)['nomdisexr']
+                ];
+            }elseif(!$resultado['notfim'] && !$resultado['notfim2']){ //não retornou nada ou não cursou a matéria
+                return [$resultado['notfim2'] = 0, $resultado['coddis']];
+            }
+        }
+    }
 }
