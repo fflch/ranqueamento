@@ -24,8 +24,36 @@
           @endif
 
           <br>
-          Letícia
-
+          <div class="card">
+      <div class="card-header">
+        Classificações
+      </div>
+      <div class="card-body">
+        @if($scores->isEmpty())
+          <p>Não há ranqueamentos.</p>
+        @else
+          <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Ano</th>
+                    <th>Habilitação Eleita</th>
+                    <th>Posição</th>
+                    <th>Tipo de Ranqueamento</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($scores as $score)
+                <tr>
+                  <td>{{ $score->ano ?? 'não informado' }}</td>
+                  <td>{{ $score->nomhab ?? 'não informado' }}</td>
+                  <td>{{ $score->posicao }}</td>
+                  <td>{{ $score->tipo ?? 'não informado' }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+          </table>
+        @endif
+      </div>
         </p>
         <br>
       </div>
