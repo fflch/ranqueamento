@@ -62,6 +62,18 @@ return [
             ]) : [],
         ],
 
+        'replicado' => [ 
+            'driver' => 'sqlsrv', 
+            'host' => env('REPLICADO_HOST'),
+            'port' => env('REPLICADO_PORT'),
+            'database' => env('REPLICADO_DATABASE'),
+            'username' => env('REPLICADO_USERNAME'),
+            'password' => env('REPLICADO_PASSWORD'),
+            'charset' => 'utf8',
+            'prefix' => '',
+        ],
+    
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
