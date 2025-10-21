@@ -3,12 +3,25 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Hab extends Model
 {
+
+    use HasFactory;
+
+    protected $fillable = [
+        'ranqueamento_id',
+        'codhab',
+        'nomhab',
+        'perhab',
+        'permite_ambos_periodos',
+        'vagas',
+    ];
+
     public static function mapeamento(){ //primeiro semestre
         return [
             502 => 2502,
