@@ -20,5 +20,6 @@ yarn-error.log
 /.idea
 /.vscode
 /.zed
-
+/.phpunit.cache
 public/vendor
+.env.dusk.local

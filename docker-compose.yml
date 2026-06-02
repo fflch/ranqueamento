@@ -1,0 +1,56 @@
+services:
+  ranqueamento:
+    image: ranqueamento:latest
+    container_name: ranqueamento
+    ports:
+      - "8000:80"
+    depends_on:
+      - mariadb
+    networks:
+      - ranqueamento-network
+    volumes:
+      - ./:/var/www/html
+    environment:
+      HOME: /tmp
+    user: "${UID:-1000}:${GID:-1000}"
+
+  mariadb:
+    image: mariadb:11
+    container_name: ranqueamento_mariadb
+    restart: always
+    environment:
+      MYSQL_DATABASE: ranqueamento
+      MYSQL_USER: ranqueamento
+      MYSQL_PASSWORD: ranqueamento
+      MYSQL_ROOT_PASSWORD: ranqueamento
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - ranqueamento-network
+
+  senhaunica-faker:
+    image: uspdev/senhaunica-faker
+    container_name: ranqueamento_senhaunica-faker
+    ports:
+      - "3141:3141"
+    environment:
+          - APP_URL=http://auth.local:3141
+    networks:
+      ranqueamento-network:
+        aliases:
+          - auth.local
+
+  selenium:
+    image: selenium/standalone-chrome
+    container_name: ranqueamento_selenium
+    ports:
+      - "7900:7900" # VNC (pra ver o browser rodando)
+    networks:
+      - ranqueamento-network
+    shm_size: 2gb
+
+networks:
+  ranqueamento-network:
+
+volumes:
+  mariadb_data:
