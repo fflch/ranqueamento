@@ -252,7 +252,7 @@ return (!empty($record) && $record['SEMESTRES'] <= 8);
     }
 
     public static function getNotas(int $codpes, array $disciplinas, $reranqueamento=false) {
-        if(empty($disciplinas)) return colletc([]);
+        if(empty($disciplinas)) return collect([]);
 
         $disciplinas = collect($disciplinas)->map(function($disciplina) {
                 return "'" . $disciplina . "'";
