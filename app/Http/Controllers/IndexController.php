@@ -34,6 +34,7 @@ class IndexController extends Controller
 
         $resultado = null;
         $notaCorte = null;
+        $notasCortePorHabilitacao = collect();
         
 
         if ($user && $ranqueamentoFinalizado) {
@@ -65,23 +66,46 @@ class IndexController extends Controller
             
             // Calcular nota de corte se tiver habilitação
             if (isset($habId) && $habId && $resultado->hab) {
-                $ultimoClassificado = Score::where('ranqueamento_id', $ranqueamentoFinalizado->id)
-                    ->where('hab_id_eleita', $habId)
-                    ->where('posicao', $resultado->hab->vagas)
-                    ->first();
-                
-                $notaCorte = $ultimoClassificado ? $ultimoClassificado->nota : null;
+                $notaCorte = $this->calcularNotaCorte($ranqueamentoFinalizado->id, $habId, $resultado->hab->vagas);
             }
-        }
-            }   
-     
 
+            // nota de corte de TODAS as habilitações que o aluno escolheu
+            $notasCortePorHabilitacao = Escolha::with('hab')
+                ->where('ranqueamento_id', $ranqueamentoFinalizado->id)
+                ->where('user_id', $user->id)
+                ->orderBy('prioridade')
+                ->get()
+                ->filter(fn($escolha) => $escolha->hab)
+                ->map(function ($escolha) use ($ranqueamentoFinalizado, $resultado) {
+                    return [
+                        'prioridade'  => $escolha->prioridade,
+                        'habilitacao' => $escolha->hab->nomhab,
+                        'periodo'     => $escolha->hab->perhab,
+                        'vagas'       => $escolha->hab->vagas,
+                        'contemplado' => $resultado->hab_id_eleita == $escolha->hab_id,
+                        'nota_corte'  => $this->calcularNotaCorte($ranqueamentoFinalizado->id, $escolha->hab_id, $escolha->hab->vagas),
+                    ];
+                })
+                ->values();
+        }
+    }
 
         return view('index', [
             'ranqueamento' => $ranqueamentoAtivo,
             'ranqueamentoFinalizado' => $ranqueamentoFinalizado,
             'resultado' => $resultado,
             'notaCorte' => $notaCorte,
+            'notasCortePorHabilitacao' => $notasCortePorHabilitacao,
         ]);
+    }
+
+    private function calcularNotaCorte(int $ranqueamentoId, int $habId, int $vagas)
+    {
+        $ultimoClassificado = Score::where('ranqueamento_id', $ranqueamentoId)
+            ->where('hab_id_eleita', $habId)
+            ->where('posicao', $vagas)
+            ->first();
+
+        return $ultimoClassificado ? $ultimoClassificado->nota : null;
     }
 }
