@@ -7,6 +7,7 @@ use App\Models\Escolha;
 use App\Models\User;
 use App\Models\Score;
 use App\Models\Ranqueamento;
+use App\Services\Utils;
 use Illuminate\Database\Eloquent\Builder;
 
 class HabilitacaoService
@@ -22,17 +23,23 @@ class HabilitacaoService
             ->orderBy('prioridade')
             ->get();
 
+        $disciplinas = array_merge(Escolha::disciplinas(), Escolha::disciplinas_segundo());
+
+        $scores = Score::with('hab')
+            ->where('ranqueamento_id', $ranqueamento->id)
+            ->get()
+            ->keyBy('codpes');
+
         $alunos = User::wherehas('escolhas', function (Builder $query) use ($ranqueamento) {
                 $query->where('ranqueamento_id', $ranqueamento->id);
             })
             ->select(['id','codpes','name','email'])
             ->orderBy('name')
             ->get()
-            ->map(function($aluno) use($declinios, $escolhas, $ranqueamento) {
+            ->map(function($aluno) use($declinios, $escolhas, $ranqueamento, $disciplinas, $scores) {
 
-                $score = Score::where('codpes',$aluno->codpes)
-                                ->where('ranqueamento_id',$ranqueamento->id)
-                                ->first();
+                $score = $scores->get($aluno->codpes);
+
                 $aluno = [
                     'id' => $aluno->id,
                     'codpes' => $aluno->codpes,
@@ -51,6 +58,12 @@ class HabilitacaoService
                     $aluno['classificacao'] = $score->hab ? $score->hab->nomhab: $score->hab;
                     $aluno['prioridade_classificacao'] = $score->prioridade_eleita;
                     $aluno['posicao'] = $score->posicao;
+                }
+
+                // nota por disciplina
+                $notas = Utils::getNotas($aluno['codpes'], $disciplinas)->keyBy('coddis');
+                foreach($disciplinas as $coddis) {
+                    $aluno['nota_' . $coddis] = $notas->has($coddis) ? $notas[$coddis]['nota'] : '-';
                 }
 
                 $habilitacoes = $escolhas->where('user_id', $aluno['id']);
@@ -74,6 +87,10 @@ class HabilitacaoService
     public static function headings(Ranqueamento $ranqueamento) {
 
         $heading = ['id','Número USP','Nome','E-mail','Média','Classificação','Prioridade Eleita','Posição','Declinou do Português?'];
+
+        foreach(array_merge(Escolha::disciplinas(), Escolha::disciplinas_segundo()) as $coddis) {
+            $heading[] = $coddis;
+        }
 
         for ($prioridade = 1; $prioridade <= $ranqueamento->max; $prioridade++) {
             $heading[] = 'Opção ' . $prioridade; 
